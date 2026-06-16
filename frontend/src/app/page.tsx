@@ -30,6 +30,8 @@ import {
   Moon
 } from "lucide-react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 interface CalculationResult {
   status: string;
   is_guaranteed: boolean;
@@ -137,7 +139,7 @@ export default function Home() {
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!currentSession) return;
-      const response = await axios.get("http://localhost:8000/api/v1/audit-history", {
+      const response = await axios.get(`${API_BASE_URL}/api/v1/audit-history`, {
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
         }
@@ -184,7 +186,7 @@ export default function Home() {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       const headers = currentSession ? { Authorization: `Bearer ${currentSession.access_token}` } : {};
 
-      const response = await axios.post("http://localhost:8000/api/v1/calculate", {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/calculate`, {
         customer_name: customerName,
         bank_name: bankName,
         total_balance: parseFloat(balance),
@@ -243,7 +245,7 @@ export default function Home() {
     setScanError(null);
 
     try {
-      const response = await axios.post("http://localhost:8000/api/v1/scan-document", formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/scan-document`, formData, {
         headers: {
           "Content-Type": "multipart/form-data"
         }
@@ -300,7 +302,7 @@ export default function Home() {
     setChatLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:8000/api/v1/chat", {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/chat`, {
         message: userText
       });
       setChatMessages((prev) => [...prev, { sender: "bot", text: response.data.reply }]);
@@ -327,7 +329,7 @@ export default function Home() {
     setPdfLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/v1/download-certificate",
+        `${API_BASE_URL}/api/v1/download-certificate`,
         {
           customer_name: customerName,
           bank_name: bankName,
