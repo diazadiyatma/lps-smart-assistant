@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Verify your bank deposit eligibility under Indonesian Deposit Insurance Corporation (LPS) regulations.",
 };
 
-export default function RootLayout({
+export  default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
