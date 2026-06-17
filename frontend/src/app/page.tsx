@@ -27,7 +27,8 @@ import {
   History,
   Calculator,
   Sun,
-  Moon
+  Moon,
+  Download
 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -112,6 +113,7 @@ export default function Home() {
   // Audit History States
   const [auditHistory, setAuditHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   // Auth Redirect Guard
   useEffect(() => {
@@ -324,18 +326,35 @@ export default function Home() {
     setPreviewUrl(null);
   };
 
-  const handleDownloadCertificate = async () => {
-    if (!modalResult) return;
-    setPdfLoading(true);
+  const handleDownloadCertificate = async (
+    custName?: string,
+    bName?: string,
+    bal?: string | number,
+    rate?: string | number,
+    isGuaranteed?: boolean,
+    rowId?: string
+  ) => {
+    const name = custName !== undefined ? custName : customerName;
+    const bank = bName !== undefined ? bName : bankName;
+    const balanceVal = bal !== undefined ? (typeof bal === "string" ? parseFloat(bal) : bal) : parseFloat(balance);
+    const interestVal = rate !== undefined ? (typeof rate === "string" ? parseFloat(rate) : rate) : parseFloat(interestRate);
+    const guaranteed = isGuaranteed !== undefined ? isGuaranteed : (modalResult ? modalResult.is_guaranteed : false);
+
+    if (rowId) {
+      setDownloadingId(rowId);
+    } else {
+      setPdfLoading(true);
+    }
+
     try {
       const response = await axios.post(
         `${API_BASE_URL}/api/v1/download-certificate`,
         {
-          customer_name: customerName,
-          bank_name: bankName,
-          total_balance: parseFloat(balance),
-          interest_rate: parseFloat(interestRate),
-          is_guaranteed: modalResult.is_guaranteed,
+          customer_name: name,
+          bank_name: bank,
+          total_balance: balanceVal,
+          interest_rate: interestVal,
+          is_guaranteed: guaranteed,
         },
         {
           responseType: "blob",
@@ -347,7 +366,7 @@ export default function Home() {
       const link = document.createElement("a");
       link.href = url;
       
-      const formattedName = (customerName || "Simulasi").trim().replace(/\s+/g, "_");
+      const formattedName = (name || "Simulasi").trim().replace(/\s+/g, "_");
       link.setAttribute("download", `Sertifikat_LPS_${formattedName}.pdf`);
       
       document.body.appendChild(link);
@@ -360,7 +379,11 @@ export default function Home() {
       console.error("Gagal mendownload PDF:", err);
       toast.error("Gagal mengunduh sertifikat PDF.");
     } finally {
-      setPdfLoading(false);
+      if (rowId) {
+        setDownloadingId(null);
+      } else {
+        setPdfLoading(false);
+      }
     }
   };
 
@@ -798,6 +821,7 @@ export default function Home() {
                       <th className="py-3.5 px-4">Bunga</th>
                       <th className="py-3.5 px-4">Status Penjaminan</th>
                       <th className="py-3.5 px-4 text-right">Tanggal Audit</th>
+                      <th className="py-3.5 px-4 text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -826,7 +850,7 @@ export default function Home() {
                                 <>
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                   Dijamin
-                                </>
+                                  </>
                               ) : (
                                 <>
                                   <XCircle className="w-3.5 h-3.5" />
@@ -840,6 +864,28 @@ export default function Home() {
                               dateStyle: "medium",
                               timeStyle: "short"
                             })}
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <button
+                              onClick={() => handleDownloadCertificate(
+                                item.nama_nasabah,
+                                item.nama_bank,
+                                item.total_simpanan,
+                                item.suku_bunga,
+                                isEligible,
+                                item.id
+                              )}
+                              disabled={downloadingId !== null}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary text-[10px] font-bold transition disabled:opacity-50"
+                              title="Unduh Sertifikat PDF"
+                            >
+                              {downloadingId === item.id ? (
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Download className="w-3 h-3" />
+                              )}
+                              PDF
+                            </button>
                           </td>
                         </tr>
                       );
@@ -990,7 +1036,7 @@ export default function Home() {
 
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={handleDownloadCertificate}
+                  onClick={() => handleDownloadCertificate()}
                   disabled={pdfLoading}
                   className="w-full bg-primary hover:opacity-90 text-primary-foreground font-bold py-2.5 rounded-xl transition duration-200 text-xs flex items-center justify-center gap-2"
                 >
